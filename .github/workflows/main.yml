@@ -1,17 +1,20 @@
 name: My First Workflow
-on: 
+
+on:
   push:
     branches: [main]
     paths-ignore: [.github/**]
+
   schedule:
     - cron: "1,31 8-18 * * 1-5"
-  workflow_dispatch: 
+
+  workflow_dispatch:
     inputs:
       environment:
         description: 'Environment to deploy to'
         type: environment
         required: true
-        
+
 jobs:
   First-Job:
     runs-on: ubuntu-latest
@@ -19,24 +22,25 @@ jobs:
     steps:
       - run: |
           echo "This job was triggered by ${{ github.event_name }}"
-          echo "Branch name is ${{ github.ref }} and repository is ${{github.repository}}."
-          echo "Triggered by: ${{github.actor}} using ${{ github.event_name }} ">> $GITHUB_STEP_SUMMARY
-      - uses: actions/checkout@v7.0.0  
-      
+          echo "Branch name is ${{ github.ref }} and repository is ${{ github.repository }}."
+          echo "Triggered by: ${{ github.actor }} using ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+
+      - uses: actions/checkout@v4
+
       - name: List repo files
         run: |
-          echo "${{github.repository}} contains:"
+          echo "${{ github.repository }} contains:"
           echo "::group::Directory Structure"
           tree . -L 5
           echo "::endgroup::"
           echo "::group::Github object"
-          echo "${{ toJson(github) }}"
-          echo "::endgroup::"         
+          echo '${{ toJson(github) }}'
+          echo "::endgroup::"
 
   Test:
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
-    needs: Build
+    needs: First-Job
     environment: Test
     steps:
       - run: echo "🧪 Testing..."
@@ -44,33 +48,21 @@ jobs:
   Load-Test:
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
-    needs: Build
+    needs: First-Job
     environment: Load-Test
     steps:
       - run: |
-          echo "🧪 Testing..."
+          echo "🧪 Load testing..."
           sleep 15
 
   Production:
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'Production'
     needs: [Test, Load-Test]
     environment:
       name: Production
       url: https://writeabout.net
-    if: github.event.inputs.environment == 'Production'
     steps:
       - run: |
           echo "🚀 Step 1..."
-          sleep 10
-      - run: |
-          echo "🚀 Step 2..."
-          sleep 10
-      - run: |
-          echo "🚀 Step 3..."
-          sleep 10
-      - run: |
-          echo "🚀 Step 4..."
-          sleep 10
-      - run: |
-          echo "🚀 Step 5..."
           sleep 10
